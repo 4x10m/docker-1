@@ -1,4 +1,5 @@
-FROM php:%%PHP_VERSION%%-%%VARIANT%%-bullseye
+# DO NOT EDIT: created by update.sh from Dockerfile-debian.template
+FROM php:8.0-fpm-bullseye
 
 # entrypoint.sh and cron.sh dependencies
 RUN set -ex; \
@@ -13,7 +14,7 @@ RUN set -ex; \
     rm -rf /var/lib/apt/lists/*; \
     \
     mkdir -p /var/spool/cron/crontabs; \
-    echo '*/%%CRONTAB_INT%% * * * * php -f /var/www/html/cron.php' > /var/spool/cron/crontabs/www-data
+    echo '*/5 * * * * php -f /var/www/html/cron.php' > /var/spool/cron/crontabs/www-data
 
 # install the PHP extensions we need
 # see https://docs.nextcloud.com/server/stable/admin_manual/installation/source_installation.html
@@ -43,9 +44,7 @@ RUN set -ex; \
     ; \
     \
     debMultiarch="$(dpkg-architecture --query DEB_BUILD_MULTIARCH)"; \
-    if [ ! -e /usr/include/gmp.h ]; then ln -s /usr/include/$debMultiarch/gmp.h /usr/include/gmp.h; fi;\
     docker-php-ext-configure gd --with-freetype --with-jpeg --with-webp; \
-    docker-php-ext-configure gmp --with-gmp="/usr/include/$debMultiarch"; \
     docker-php-ext-configure ldap --with-libdir="lib/$debMultiarch"; \
     docker-php-ext-install -j "$(nproc)" \
         bcmath \
@@ -62,10 +61,10 @@ RUN set -ex; \
     ; \
     \
 # pecl will claim success even if one install fails, so we need to perform each install separately
-    pecl install APCu-%%APCU_VERSION%%; \
-    pecl install memcached-%%MEMCACHED_VERSION%%; \
-    pecl install redis-%%REDIS_VERSION%%; \
-    pecl install imagick-%%IMAGICK_VERSION%%; \
+    pecl install APCu-5.1.21; \
+    pecl install memcached-3.2.0RC2; \
+    pecl install redis-5.3.7; \
+    pecl install imagick-3.7.0; \
     \
     docker-php-ext-enable \
         apcu \
@@ -113,9 +112,9 @@ RUN { \
     chmod -R g=u /var/www
 
 VOLUME /var/www/html
-%%VARIANT_EXTRAS%%
 
-ENV NEXTCLOUD_VERSION %%VERSION%%
+
+ENV NEXTCLOUD_VERSION 23.0.3
 
 RUN set -ex; \
     fetchDeps=" \
@@ -126,9 +125,9 @@ RUN set -ex; \
     apt-get install -y --no-install-recommends $fetchDeps; \
     \
     curl -fsSL -o nextcloud.tar.bz2 \
-        "%%BASE_DOWNLOAD_URL%%/nextcloud-${NEXTCLOUD_VERSION}.tar.bz2"; \
+        "https://download.nextcloud.com/server/releases/nextcloud-${NEXTCLOUD_VERSION}.tar.bz2"; \
     curl -fsSL -o nextcloud.tar.bz2.asc \
-        "%%BASE_DOWNLOAD_URL%%/nextcloud-${NEXTCLOUD_VERSION}.tar.bz2.asc"; \
+        "https://download.nextcloud.com/server/releases/nextcloud-${NEXTCLOUD_VERSION}.tar.bz2.asc"; \
     export GNUPGHOME="$(mktemp -d)"; \
 # gpg key from https://nextcloud.com/nextcloud.asc
     gpg --batch --keyserver keyserver.ubuntu.com --recv-keys 28806A878AE423A28372792ED75899B9A724937A; \
@@ -148,4 +147,4 @@ COPY *.sh upgrade.exclude /
 COPY config/* /usr/src/nextcloud/config/
 
 ENTRYPOINT ["/entrypoint.sh"]
-CMD ["%%CMD%%"]
+CMD ["php-fpm"]

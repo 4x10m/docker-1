@@ -1,8 +1,8 @@
-#!/bin/bash
+#!/usr/bin/env bash
 set -eo pipefail
 
 declare -A php_version=(
-	[default]='7.4'
+	[default]='8.0'
 )
 
 declare -A cmd=(
@@ -76,7 +76,7 @@ variants=(
 	fpm-alpine
 )
 
-min_version='20.0'
+min_version='22'
 
 # version_greater_or_equal A B returns whether A >= B
 function version_greater_or_equal() {
@@ -113,7 +113,7 @@ function create_variant() {
 	' "$dir/Dockerfile"
 
 	case "$phpVersion" in
-		7.4 )
+		7.4|8.0 )
 			sed -ri -e '
 				\@docker-php-ext-configure gmp --with-gmp@d;
 				\@/usr/include/gmp.h@d;
@@ -155,7 +155,7 @@ fullversions=( $( curl -fsSL 'https://download.nextcloud.com/server/releases/' |
 	grep -oE 'nextcloud-[[:digit:]]+(\.[[:digit:]]+){2}' | \
 	grep -oE '[[:digit:]]+(\.[[:digit:]]+){2}' | \
 	sort -urV ) )
-versions=( $( printf '%s\n' "${fullversions[@]}" | cut -d. -f1-2 | sort -urV ) )
+versions=( $( printf '%s\n' "${fullversions[@]}" | cut -d. -f1 | sort -urV ) )
 for version in "${versions[@]}"; do
 	fullversion="$( printf '%s\n' "${fullversions[@]}" | grep -E "^$version" | head -1 )"
 
